@@ -1,0 +1,5 @@
+<script setup lang="ts">
+import { money, date, labels } from '../utils/format'
+defineProps<{ rows: any[]; columns: { key: string; label: string; type?: string; width?: number }[]; loading?: boolean }>()
+</script>
+<template><el-table :data="rows" v-loading="loading" stripe style="width:100%" empty-text="暂无记录"><el-table-column v-for="col in columns" :key="col.key" :prop="col.key" :label="col.label" :min-width="col.width || 120" show-overflow-tooltip><template #default="{row}"><el-tag v-if="col.type === 'status'" :type="['COMPLETED','PAID','UNUSED'].includes(row[col.key]) ? 'success' : ['FAILED','VOID'].includes(row[col.key]) ? 'danger' : 'info'" effect="light">{{ labels[row[col.key]] || row[col.key] }}</el-tag><span v-else-if="col.type === 'money'" class="mono">{{ money(row[col.key]) }}</span><span v-else-if="col.type === 'date'">{{ date(row[col.key]) }}</span><span v-else-if="col.type === 'boolean'">{{ row[col.key] ? '启用' : '停用' }}</span><span v-else>{{ row[col.key] ?? '—' }}</span></template></el-table-column><slot /></el-table></template>

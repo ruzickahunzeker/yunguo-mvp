@@ -1,0 +1,123 @@
+name: yunguo-mvp
+x-app: &app
+  build: ./backend
+  environment: &env
+    APP_ENV: ${APP_ENV:-development}
+    TRUST_PROXY: true
+    MONITOR_ENABLED: ${MONITOR_ENABLED:-true}
+    MONITOR_INTERVAL_SECONDS: ${MONITOR_INTERVAL_SECONDS:-15}
+    WORKER_HEARTBEAT_SECONDS: ${WORKER_HEARTBEAT_SECONDS:-10}
+    WORKER_STALE_SECONDS: ${WORKER_STALE_SECONDS:-60}
+    MONITOR_STALE_MINUTES: ${MONITOR_STALE_MINUTES:-30}
+    EMAIL_VERIFICATION_ENABLED: ${EMAIL_VERIFICATION_ENABLED:-false}
+    REQUIRE_VERIFIED_EMAIL_FOR_PURCHASE: ${REQUIRE_VERIFIED_EMAIL_FOR_PURCHASE:-false}
+    EMAIL_VERIFICATION_MINUTES: ${EMAIL_VERIFICATION_MINUTES:-60}
+    PASSWORD_RESET_ENABLED: ${PASSWORD_RESET_ENABLED:-false}
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+    SMTP_HOST: ${SMTP_HOST:-}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+    SMTP_USERNAME: ${SMTP_USERNAME:-}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
+    PASSWORD_RESET_MINUTES: ${PASSWORD_RESET_MINUTES:-20}
+    DATABASE_URL: postgresql+psycopg://yunguo:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/yunguo
+    JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+    CODE_PEPPER: ${CODE_PEPPER:?Set CODE_PEPPER}
+    REDIS_URL: redis://redis:6379/0
+    DEMO_RECHARGE_ENABLED: ${DEMO_RECHARGE_ENABLED:-false}
+    FULFILLMENT_MODE: ${FULFILLMENT_MODE:-manual}
+    MOCK_DIRECT_TOPUP_ENABLED: ${MOCK_DIRECT_TOPUP_ENABLED:-false}
+    FULFILLMENT_PROVIDER_URL: ${FULFILLMENT_PROVIDER_URL:-}
+    FULFILLMENT_PROVIDER_TOKEN: ${FULFILLMENT_PROVIDER_TOKEN:-}
+    FULFILLMENT_WEBHOOK_SECRET: ${FULFILLMENT_WEBHOOK_SECRET:-}
+    CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
+  restart: unless-stopped
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: yunguo
+      POSTGRES_DB: yunguo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U yunguo -d yunguo]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, 'yes', --maxmemory, 128mb, --maxmemory-policy, noeviction]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+  migrate:
+    <<: *app
+    command: [sh, -c, 'alembic upgrade head && python -m app.cli seed']
+    restart: 'no'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  api:
+    <<: *app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  worker:
+    <<: *app
+    command: [python, -m, app.tasks.worker]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  mail-worker:
+    <<: *app
+    command: [python, -m, app.tasks.mail_worker]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  monitor:
+    <<: *app
+    command: [python, -m, app.tasks.monitor]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  acceptance-check:
+    <<: *app
+    image: yunguo-mvp-api:latest
+    profiles: [acceptance]
+    command: [python, /app/acceptance_check.py, --container, --hours, '8', --interval, '60', --report, /reports/overnight-check.json, --target, http://web]
+    volumes:
+      - ./scripts/overnight_check.py:/app/acceptance_check.py:ro
+      - ../yunguo-mvp-acceptance:/reports
+    restart: 'no'
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+  web:
+    build: ./frontend
+    ports:
+      - '127.0.0.1:${WEB_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  redis-data:
