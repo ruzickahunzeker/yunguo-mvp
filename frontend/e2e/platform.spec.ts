@@ -16,6 +16,7 @@ async function register(page: Page, address = email()) {
   await page.getByLabel('密码', { exact: true }).fill(fixturePassword)
   await page.getByRole('button', { name: '注册账号' }).click()
   await expect(page).toHaveURL(/\/me\/orders$/)
+  await expect(page.getByText('当前为演示环境：资金和订单履约均为模拟数据，不代表真实付款或订阅开通。')).toBeVisible()
   return address
 }
 async function login(page: Page, address = 'browser-admin@example.com', password = fixturePassword) {
@@ -497,6 +498,7 @@ test('代理余额采购卡密、一次性交付及公开兑换不重复扣款',
   const token=(await page.evaluate(()=>sessionStorage.getItem('access_token')))!
   expect((await request.post('/api/me/wallet/demo-recharge',{headers:requestHeaders(token),data:{amount:10000}})).ok()).toBeTruthy()
   await page.goto('/agent/codes')
+  await expect(page.getByText('当前为演示环境：资金和订单履约均为模拟数据，不代表真实付款或订阅开通。')).toBeVisible()
   await page.getByRole('button',{name:'余额采购卡密',exact:true}).click()
   const dialog=page.getByRole('dialog',{name:'余额采购卡密',exact:true})
   await dialog.getByRole('combobox').press('ArrowDown')
