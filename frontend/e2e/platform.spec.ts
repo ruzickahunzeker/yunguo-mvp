@@ -89,6 +89,7 @@ test('管理员一次性交付卡密、公开兑换、凭证查询和重复兑�
   const guest = await context.newPage()
   guest.on('pageerror', e => pageErrors.push(e.message))
   await guest.goto('http://127.0.0.1:8803/redeem')
+  await expect(guest.getByText('当前为演示环境：订单完成表示模拟履约，不代表真实订阅已开通。')).toBeVisible()
   await guest.getByLabel('兑换卡密').fill(code)
   await guest.getByRole('button', { name: '确认兑换' }).click()
   await expect(guest.getByRole('heading', { name: '兑换成功' })).toBeVisible()
