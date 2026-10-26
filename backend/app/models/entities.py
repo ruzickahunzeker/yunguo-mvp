@@ -38,6 +38,7 @@ class Product(TimestampMixin, Base):
     stock: Mapped[int] = mapped_column(Integer, default=100)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     sort: Mapped[int] = mapped_column(default=0)
+    verification_required: Mapped[bool] = mapped_column(Boolean, default=False)
 
 class ProductPrice(Base):
     __tablename__ = 'product_prices'
@@ -76,6 +77,19 @@ class Order(TimestampMixin, Base):
     lookup_hash: Mapped[str] = mapped_column(String(64))
     failure_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    verification_required: Mapped[bool] = mapped_column(Boolean, default=False)
+
+class FulfillmentCheck(TimestampMixin, Base):
+    __tablename__ = 'fulfillment_checks'
+    __table_args__ = (
+        CheckConstraint("step IN ('payment','entitlement','renewal_stopped','card_removed')", name='ck_fulfillment_check_step'),
+        CheckConstraint("status IN ('VERIFIED','FAILED')", name='ck_fulfillment_check_status'),
+    )
+    order_id: Mapped[str] = mapped_column(ForeignKey('orders.id'), primary_key=True)
+    step: Mapped[str] = mapped_column(String(30), primary_key=True)
+    status: Mapped[str] = mapped_column(String(20))
+    reference: Mapped[str] = mapped_column(String(64))
+    actor_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
 
 class RedeemCode(TimestampMixin, Base):
     __tablename__ = 'redeem_codes'

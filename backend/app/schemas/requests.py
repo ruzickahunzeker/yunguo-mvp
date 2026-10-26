@@ -39,6 +39,7 @@ class ProductInput(Input):
     stock: int = Field(ge=0, le=1_000_000)
     active: bool = True
     sort: int = 0
+    verification_required: bool = False
 class ProductUpdate(ProductInput):
     expected_updated_at: datetime
 class Buy(Input):
@@ -77,6 +78,10 @@ class UserUpdate(Input):
 class OrderAction(Input):
     action: Literal['complete','fail','retry','refund','cancel']
     note: str = Field(min_length=3, max_length=200)
+class FulfillmentCheckInput(Input):
+    step: Literal['payment','entitlement','renewal_stopped','card_removed']
+    status: Literal['VERIFIED','FAILED']
+    reference: str = Field(min_length=8, max_length=64, pattern=r'^[A-Za-z][A-Za-z0-9_-]{7,63}$')
 class SettingsUpdate(Input):
     sales_enabled: bool
     redemption_enabled: bool

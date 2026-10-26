@@ -15,7 +15,8 @@ def run_once():
     with SessionLocal() as db:
         if engine.dialect.name == 'sqlite':
             db.connection().exec_driver_sql('BEGIN IMMEDIATE')
-        job = db.scalar(select(FulfillmentJob).where(FulfillmentJob.state == 'QUEUED', FulfillmentJob.attempts < 3)
+        job = db.scalar(select(FulfillmentJob).join(Order, Order.id == FulfillmentJob.order_id)
+            .where(FulfillmentJob.state == 'QUEUED', FulfillmentJob.attempts < 3, Order.verification_required.is_(False))
             .order_by(FulfillmentJob.id).with_for_update(skip_locked=True).limit(1))
         if not job:
             return 0

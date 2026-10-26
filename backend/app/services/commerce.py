@@ -2,9 +2,9 @@
 import secrets
 from datetime import timedelta, timezone
 from fastapi import HTTPException
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from app.models import (User, Product, ProductPrice, Wallet, WalletTransaction, Order, OrderEvent,
-    RedeemCode, FulfillmentJob, AuditLog, Payment, SystemSetting, now)
+    RedeemCode, FulfillmentJob, FulfillmentCheck, AuditLog, Payment, SystemSetting, now)
 from app.core.security import digest
 from app.core.config import get_settings
 from app.repositories.queries import required
@@ -50,7 +50,8 @@ def result(order, key):
 
 def new_order(db, product, source, amount, key, user_id=None):
     order = Order(id='YG' + secrets.token_hex(16), user_id=user_id, product_id=product.id,
-        product_name=product.name, source=source, amount=amount, idempotency_key=key, lookup_hash='')
+        product_name=product.name, source=source, amount=amount, idempotency_key=key, lookup_hash='',
+        verification_required=product.verification_required)
     order.lookup_hash = digest(proof(order, key))
     db.add(order)
     db.flush()
@@ -165,6 +166,10 @@ def order_action(db, actor, order_id, action, note):
     else:
         if order.payment_status != 'PAID' or order.fulfillment_status not in ('QUEUED','PROCESSING') or job.attempts >= 3:
             raise HTTPException(409, '当前订单不可处理')
+        if action == 'complete' and order.verification_required:
+            checks = {check.step: check.status for check in db.scalars(select(FulfillmentCheck).where(FulfillmentCheck.order_id == order.id))}
+            if any(checks.get(step) != 'VERIFIED' for step in ('payment','entitlement','renewal_stopped','card_removed')):
+                raise HTTPException(409, '付款、订阅权益、停止续费和移除支付方式均须核验后才能完成')
         job.attempts += 1
         status = 'COMPLETED' if action == 'complete' else 'FAILED'
         order.fulfillment_status = status
@@ -177,3 +182,46 @@ def order_action(db, actor, order_id, action, note):
     db.add(OrderEvent(order_id=order.id, actor_id=actor.id, action=action, note=note))
     audit(db, actor, f'orders.{action}', order.id, note)
     return order
+
+FULFILLMENT_STEPS = ('payment', 'entitlement', 'renewal_stopped', 'card_removed')
+
+def fulfillment_checks(db, order_id):
+    order = db.get(Order, order_id)
+    if not order:
+        raise HTTPException(404, '订单不存在')
+    stored = {item.step: item for item in db.scalars(select(FulfillmentCheck).where(FulfillmentCheck.order_id == order_id))}
+    return {'order_id': order_id, 'verification_required': order.verification_required,
+            'fulfillment_status': order.fulfillment_status,
+            'checks': [{'step': step, 'status': stored[step].status if step in stored else 'PENDING',
+                        'reference': stored[step].reference if step in stored else None,
+                        'actor_id': stored[step].actor_id if step in stored else None,
+                        'updated_at': stored[step].updated_at if step in stored else None} for step in FULFILLMENT_STEPS]}
+
+def record_fulfillment_check(db, actor, order_id, payload):
+    order = db.scalar(select(Order).where(Order.id == order_id).with_for_update())
+    if not order:
+        raise HTTPException(404, '订单不存在')
+    if not order.verification_required:
+        raise HTTPException(409, '该订单未启用逐项履约核验')
+    if order.payment_status != 'PAID' or order.fulfillment_status not in ('QUEUED', 'PROCESSING'):
+        raise HTTPException(409, '当前订单不可更新履约核验')
+    existing = {item.step: item for item in db.scalars(select(FulfillmentCheck).where(FulfillmentCheck.order_id == order_id))}
+    if any(existing.get(step) is None or existing[step].status != 'VERIFIED' for step in FULFILLMENT_STEPS[:FULFILLMENT_STEPS.index(payload.step)]):
+        raise HTTPException(409, '请按付款、订阅权益、停止续费、移除支付方式的顺序核验')
+    current = existing.get(payload.step)
+    if current and current.status == payload.status and current.reference == payload.reference:
+        return fulfillment_checks(db, order_id)
+    following = FULFILLMENT_STEPS[FULFILLMENT_STEPS.index(payload.step) + 1:]
+    if following:
+        db.execute(delete(FulfillmentCheck).where(FulfillmentCheck.order_id == order_id,
+                                                   FulfillmentCheck.step.in_(following)))
+    if current:
+        current.status, current.reference, current.actor_id = payload.status, payload.reference, actor.id
+        current.updated_at = now()
+    else:
+        db.add(FulfillmentCheck(order_id=order_id, step=payload.step, status=payload.status,
+                                reference=payload.reference, actor_id=actor.id))
+    db.add(OrderEvent(order_id=order_id, actor_id=actor.id, action=f'check.{payload.step}', note=payload.status))
+    audit(db, actor, 'orders.check', order_id, f'{payload.step}:{payload.status}')
+    db.flush()
+    return fulfillment_checks(db, order_id)

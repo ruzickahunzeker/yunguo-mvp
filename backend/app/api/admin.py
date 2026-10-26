@@ -4,8 +4,8 @@ from sqlalchemy import select, func, update
 from app.api.deps import DB, Admin, Key
 from app.models import (User, Product, ProductPrice, RedeemCode, Order, Wallet, WalletTransaction,
     AuditLog, Agent, SystemSetting, OrderEvent, FulfillmentJob, now)
-from app.schemas.requests import ProductInput, ProductUpdate, CodeBatch, CodeVoid, UserUpdate, WalletAdjust, OrderAction, SettingsUpdate
-from app.services.commerce import audit, issue_codes, move_wallet, order_action
+from app.schemas.requests import ProductInput, ProductUpdate, CodeBatch, CodeVoid, UserUpdate, WalletAdjust, OrderAction, FulfillmentCheckInput, SettingsUpdate
+from app.services.commerce import audit, issue_codes, move_wallet, order_action, fulfillment_checks, record_fulfillment_check
 from app.repositories.queries import required, row, paginate
 
 router = APIRouter(prefix='/admin', tags=['管理员'])
@@ -137,6 +137,16 @@ def orders(actor: Admin, db: DB, page: int = Query(1, ge=1), page_size: int = Qu
 def events(order_id: str, actor: Admin, db: DB):
     required(db, Order, order_id)
     return [row(e) for e in db.scalars(select(OrderEvent).where(OrderEvent.order_id == order_id).order_by(OrderEvent.id))]
+
+@router.get('/orders/{order_id}/checks')
+def checks(order_id: str, actor: Admin, db: DB):
+    return fulfillment_checks(db, order_id)
+
+@router.put('/orders/{order_id}/checks')
+def set_check(order_id: str, payload: FulfillmentCheckInput, actor: Admin, db: DB):
+    data = record_fulfillment_check(db, actor, order_id, payload)
+    db.commit()
+    return data
 
 @router.post('/orders/{order_id}/action')
 def action(order_id: str, payload: OrderAction, actor: Admin, db: DB):
