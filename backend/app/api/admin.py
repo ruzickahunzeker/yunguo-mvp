@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Query, HTTPException, Response
 from sqlalchemy import select, func, update
+from sqlalchemy.exc import IntegrityError
 from app.api.deps import DB, Admin, Key
 from app.models import (User, Product, ProductPrice, RedeemCode, Order, Wallet, WalletTransaction,
     AuditLog, Agent, SystemSetting, OrderEvent, FulfillmentJob, now)
@@ -57,7 +58,16 @@ def products(actor: Admin, db: DB, page: int = Query(1, ge=1), page_size: int = 
     return result
 
 def save_product(db, payload, actor, value=None):
+    requested_sku = payload.sku if 'sku' in payload.model_fields_set else (value.sku if value else None)
+    if value is not None and value.sku is not None and requested_sku != value.sku:
+        raise HTTPException(409, 'SKU 已绑定商品，不能修改或清空')
+    if requested_sku and db.scalar(select(Product.id).where(Product.sku == requested_sku, Product.id != (value.id if value else -1))):
+        raise HTTPException(409, 'SKU 已被其他商品使用')
     data = payload.model_dump(exclude={'agent_price','expected_updated_at'})
+    if value is not None:
+        for optional in ('sku', 'subscription_months'):
+            if optional not in payload.model_fields_set:
+                data.pop(optional)
     if value is None:
         value = Product(**data)
         db.add(value)
@@ -71,7 +81,13 @@ def save_product(db, payload, actor, value=None):
     else:
         db.add(ProductPrice(product_id=value.id, role='agent', price=payload.agent_price))
     audit(db, actor, 'products.save', value.id)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        if 'sku' in str(exc.orig).lower():
+            raise HTTPException(409, 'SKU 已被其他商品使用') from None
+        raise
     return {**row(value), 'agent_price': payload.agent_price}
 
 @router.post('/products', status_code=201)

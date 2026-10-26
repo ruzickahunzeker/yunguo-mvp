@@ -46,11 +46,13 @@ def result(order, key):
         created_at = created_at.replace(tzinfo=timezone.utc)
     return {'order_id': order.id, 'lookup_token': proof(order, key),
             'payment_status': order.payment_status, 'fulfillment_status': order.fulfillment_status,
-            'product_name': order.product_name, 'amount': order.amount, 'created_at': created_at.isoformat()}
+            'product_name': order.product_name, 'product_sku': order.product_sku,
+            'subscription_months': order.subscription_months, 'amount': order.amount, 'created_at': created_at.isoformat()}
 
 def new_order(db, product, source, amount, key, user_id=None):
     order = Order(id='YG' + secrets.token_hex(16), user_id=user_id, product_id=product.id,
-        product_name=product.name, source=source, amount=amount, idempotency_key=key, lookup_hash='',
+        product_name=product.name, product_sku=product.sku, product_description=product.description,
+        subscription_months=product.subscription_months, source=source, amount=amount, idempotency_key=key, lookup_hash='',
         verification_required=product.verification_required)
     order.lookup_hash = digest(proof(order, key))
     db.add(order)

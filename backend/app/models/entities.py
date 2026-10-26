@@ -28,10 +28,16 @@ class User(TimestampMixin, Base):
 
 class Product(TimestampMixin, Base):
     __tablename__ = 'products'
-    __table_args__ = (CheckConstraint('price >= 0 AND original_price >= 0 AND stock >= 0', name='ck_product_values'),)
+    __table_args__ = (
+        CheckConstraint('price >= 0 AND original_price >= 0 AND stock >= 0', name='ck_product_values'),
+        CheckConstraint('subscription_months IS NULL OR subscription_months BETWEEN 1 AND 36', name='ck_product_subscription_months'),
+        UniqueConstraint('sku', name='uq_product_sku'),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
+    sku: Mapped[str | None] = mapped_column(String(40), nullable=True)
     name: Mapped[str] = mapped_column(String(120))
     description: Mapped[str] = mapped_column(Text, default='')
+    subscription_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
     category: Mapped[str] = mapped_column(String(60), default='数字服务')
     original_price: Mapped[int] = mapped_column(BigInteger)
     price: Mapped[int] = mapped_column(BigInteger)
@@ -69,6 +75,9 @@ class Order(TimestampMixin, Base):
     user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
     product_id: Mapped[int] = mapped_column(ForeignKey('products.id'))
     product_name: Mapped[str] = mapped_column(String(120))
+    product_sku: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    product_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    subscription_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
     source: Mapped[str] = mapped_column(String(20))
     amount: Mapped[int] = mapped_column(BigInteger)
     payment_status: Mapped[str] = mapped_column(String(20), default='PAID')

@@ -30,8 +30,10 @@ class ResetPassword(Input):
     token: str = Field(pattern=r'^[a-f0-9]{64}$')
     new_password: str = Field(min_length=10, max_length=128)
 class ProductInput(Input):
+    sku: str | None = Field(default=None, min_length=3, max_length=40, pattern=r'^[A-Z][A-Z0-9_-]{2,39}$')
     name: str = Field(min_length=1, max_length=120)
     description: str = Field(default='', max_length=5000)
+    subscription_months: int | None = Field(default=None, strict=True, ge=1, le=36)
     category: str = Field(default='数字服务', min_length=1, max_length=60)
     original_price: Money
     price: Money
