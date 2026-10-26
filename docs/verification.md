@@ -1,5 +1,7 @@
 # 验证记录
 
+2026-10-26：创建并推送私有 GitHub 仓库 `ruzickahunzeker/yunguo-mvp`。推送前核对 Git 工作区、忽略规则、当前 161 个跟踪文件与历史 blob；未发现数据库、备份、私钥或令牌。远端 `main` 与本地提交 `64f40ab` 一致，首次 GitHub Actions [Checks 运行](https://github.com/ruzickahunzeker/yunguo-mvp/actions/runs/40339779746) 的 backend 和 browser 作业均成功。历史记录中“尚未设置远端”的描述反映当时状态，已由此条更新。
+
 2026-10-26：新增稳定 SKU、订阅月数及订单下单权益快照。新订单保存下单时的名称、SKU、说明、订阅月数、金额；商品后续编辑不会改写历史订单。新增测试覆盖重复 SKU、不可变 SKU、旧客户端省略新字段，以及商品编辑后的快照稳定性。隔离测试完整后端 **171/171** 通过；Node 22 前端构建和空白 SQLite 迁移检查通过。部署前备份演示库，迁移并更新 8080 的 API/Web；部署后健康返回 `mock/demo`、钱包对账差异为空，PostgreSQL `alembic check` 无遗漏。详见[实现说明](product-sku-snapshots.md)。
 
 2026-10-26：新增可按商品启用的逐项履约核验。订单快照“要求逐项核验”；Card 付款、订阅权益生效、停止续费、移除支付方式四步依次记录，未全部核验时后端拒绝人工完成；mock worker 跳过这类订单。隔离测试数据库中完整后端测试 **170/170** 通过；Node 22 前端构建通过；空白 SQLite 数据库迁移到最新版本后 `alembic check` 显示无遗漏操作。部署前已备份演示 PostgreSQL 数据库，随后迁移并更新 8080 的 API、worker、Web；宿主机健康接口返回 `{"status":"ok","mode":"mock","demo":true}`，所有 Compose 服务运行，钱包对账差异为空。功能边界和验收步骤见[逐项履约核验](fulfillment-checks.md)。
