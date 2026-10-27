@@ -107,7 +107,7 @@ erDiagram
 
 ### 状态流转
 
-支付：`PAID → REFUNDED`（仅失败或取消的钱包订单）。
+支付：`PAID → REFUNDED`（仅失败或取消的钱包订单）。完整允许动作和终态见[订单状态矩阵](order-state-matrix.md)。
 
 履约：`QUEUED → COMPLETED/FAILED/CANCELED`；预留 PROCESSING 以扩展外部渠道；`FAILED → QUEUED` 需人工审核重试，最多3次执行。已退款不能重试，已完成不能自动退款。退款唯一reference为 `refund:<order_id>`，并锁订单，重复/并发退款不重复入账。卡密订单金额0且无钱包扣款，拒绝钱包退款。
 
