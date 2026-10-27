@@ -309,3 +309,8 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - 新增订单状态矩阵文档，逐项记录 `PAID/REFUNDED` 与 `QUEUED/PROCESSING/FAILED/CANCELED/COMPLETED` 的允许动作、退款条件和终止规则，并与 `order_action` 当前门禁逐条对照。
 - 矩阵明确卡密 0 元订单不走钱包退款，已退款订单不可重试，完成订单不提供普通自动退款；真实支付接入前仍不能把该矩阵当作渠道结算状态。
 
+## 2026-10-27 移动端验收准备
+
+- Playwright 已配置桌面与 Pixel 7 两个项目，现有平台套件覆盖订单、退款、报表、监控和横向溢出检查。
+- `npm exec -- vue-tsc --noEmit` 通过；本机 Node 为 18，项目要求 Node 22，完整 Vite 构建和浏览器套件等待 Node 22/CI 环境执行。
+
