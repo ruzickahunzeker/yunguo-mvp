@@ -11,6 +11,7 @@ const pending=ref<{key:string,payload:any}>()
 const selected=computed(()=>products.value.find(p=>p.id===productId.value))
 const total=computed(()=>(selected.value?.effective_price||0)*quantity.value)
 async function start(){
+  if(busy.value)return
   busy.value=true
   try {
     const [prices,wallet]=await Promise.all([api.get('/agent/prices'),api.get('/me/wallet')])
@@ -18,6 +19,7 @@ async function start(){
   } finally {busy.value=false}
 }
 async function submit(){
+  if(busy.value)return
   if(!pending.value){
     if(!selected.value?.can_purchase)return
     try{await ElMessageBox.confirm(`采购 ${quantity.value} 张，单价 ${money(selected.value.effective_price)}，合计扣款 ${money(total.value)}。生成后请立即下载保存。`,'确认采购卡密',{type:'warning'})}catch{return}
@@ -53,12 +55,12 @@ onBeforeRouteLeave(guard)
 onBeforeRouteUpdate(guard)
 </script>
 <template>
-  <el-button type="primary" :loading="busy" @click="start">余额采购卡密</el-button>
+  <el-button type="primary" :loading="busy" :disabled="busy" @click="start">余额采购卡密</el-button>
   <el-dialog v-model="open" title="余额采购卡密" width="min(94vw,650px)" :before-close="close" :close-on-click-modal="false" :close-on-press-escape="false">
     <template v-if="result">
       <el-alert :title="result.notice" :type="result.replayed?'warning':'success'" :closable="false" />
       <p>批次 {{result.batch_id}} · {{result.quantity}} 张 · 已扣款 {{money(result.charged_amount)}}</p>
-      <template v-if="result.codes.length">
+      <template v-if="result.codes?.length">
         <pre class="code-preview">{{result.codes.join('\n')}}</pre>
         <el-button type="primary" @click="downloadCodes(result.codes,result.batch_id)">导出 TXT</el-button>
         <el-button @click="downloadCodes(result.codes,result.batch_id,true)">导出 CSV</el-button>
