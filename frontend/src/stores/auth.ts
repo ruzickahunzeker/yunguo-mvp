@@ -20,6 +20,8 @@ export const useAuth = defineStore('auth', () => {
     sessionStorage.setItem('access_token', data.access_token)
     user.value = data.user
   }
-  async function logout() { await api.post('/auth/logout'); clear() }
+  async function logout() {
+    try { await api.post('/auth/logout') } finally { clear() }
+  }
   return { user, ready, features, load, login, logout, clear }
 })

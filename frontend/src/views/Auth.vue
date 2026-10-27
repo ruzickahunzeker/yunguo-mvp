@@ -6,6 +6,7 @@ const route = useRoute(), router = useRouter(), auth = useAuth()
 const register = computed(() => route.path === '/register')
 const form = reactive({ email: '', password: '', name: '' }), loading = ref(false)
 async function submit() {
+  if (loading.value) return
   loading.value = true
   try {
     await auth.login(register.value ? 'register' : 'login', register.value ? form : { email: form.email, password: form.password })

@@ -1,23 +1,28 @@
 <script setup lang="ts">
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from './stores/auth'
 const auth = useAuth(), route = useRoute(), router = useRouter()
 const mockMode = ref(false)
+function onAuthExpired() {
+  if (route.meta.auth) router.push({ path: '/login', query: { redirect: route.fullPath } })
+}
 onMounted(async () => {
   try {
     const response = await fetch('/api/health', { cache: 'no-store' })
     if (response.ok) mockMode.value = (await response.json()).mode === 'mock'
   } catch { /* The normal API requests report connection failures. */ }
+  window.addEventListener('auth-expired', onAuthExpired)
 })
+onBeforeUnmount(() => window.removeEventListener('auth-expired', onAuthExpired))
 const backoffice = computed(() => /^\/(admin|agent|me)\//.test(route.path))
 const adminLinks = [['dashboard','数据概览'],['reports','统计报表'],['code-purchase-reports','卡密采购报表'],['operations','运行状态'],['monitoring','监控与告警'],['users','用户管理'],['products','商品套餐'],['codes','卡密管理'],['orders','订单管理'],['wallets','钱包管理'],['agents','代理管理'],['settings','系统设置'],['audit-logs','操作日志']]
 const memberLinks = [['orders','我的订单'],['wallet','我的钱包'],['transactions','资金流水'],['profile','个人资料']]
 const agentLinks = [['overview','代理概览'],['prices','商品价格'],['codes','卡密库存'],['orders','代理订单'],['bills','代理账单'],['team','名下代理']]
 const zone = computed(() => route.path.split('/')[1])
 const links = computed(() => zone.value === 'admin' ? adminLinks : zone.value === 'agent' ? agentLinks : memberLinks)
-async function logout() { await auth.logout(); router.push('/') }
+async function logout() { try { await auth.logout() } catch { /* API client reports the failure; local session is cleared. */ } await router.push('/') }
 </script>
 <template>
   <el-config-provider :locale="zhCn"><div class="app-shell">
