@@ -365,3 +365,8 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - 生产配置试验拒绝 SQLite/演示充值/mock 履约以及不合规授权服务商地址，生产门禁生效。
 - 定向价格测试超时定位在 `TestClient` 启动的 AnyIO blocking portal（fixture `client`），不是业务断言失败；当前沙箱没有活动测试进程或 Docker 服务。待干净容器/CI 环境恢复后重跑。
 
+## 2026-10-28 发布收口尝试
+
+- 工作区干净，`git diff --check` 和 Python 编译检查通过；本地 `main` 当前领先 `origin/main` 20 个提交。
+- `git push origin main` 因当前环境无法解析 `github.com` 失败；未改写远端历史，提交保留在本地，网络恢复后按发布清单重试。
+
