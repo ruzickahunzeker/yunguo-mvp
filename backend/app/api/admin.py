@@ -63,6 +63,8 @@ def save_product(db, payload, actor, value=None):
         raise HTTPException(409, 'SKU 已绑定商品，不能修改或清空')
     if requested_sku and db.scalar(select(Product.id).where(Product.sku == requested_sku, Product.id != (value.id if value else -1))):
         raise HTTPException(409, 'SKU 已被其他商品使用')
+    previous_price = value.price if value is not None else None
+    previous_agent_price = db.scalar(select(ProductPrice.price).where(ProductPrice.product_id == value.id, ProductPrice.role == 'agent')) if value is not None else None
     data = payload.model_dump(exclude={'agent_price','expected_updated_at'})
     if value is not None:
         for optional in ('sku', 'subscription_months'):
@@ -80,7 +82,8 @@ def save_product(db, payload, actor, value=None):
         price.price = payload.agent_price
     else:
         db.add(ProductPrice(product_id=value.id, role='agent', price=payload.agent_price))
-    audit(db, actor, 'products.save', value.id)
+    audit(db, actor, 'products.save', value.id,
+          f'price={previous_price}->{value.price};agent_price={previous_agent_price}->{payload.agent_price}')
     try:
         db.commit()
     except IntegrityError as exc:
