@@ -55,9 +55,11 @@ def test_changed_check_invalidates_later_steps_and_rejects_secret_fields(client,
     order_id = buy(client, tokens).json()['order_id']
     url = f'/api/admin/orders/{order_id}/checks'
     assert client.put(url, json={'step': 'payment', 'status': 'VERIFIED', 'reference': 'receipt_001', 'session': 'secret'}, headers=tokens['admin']).status_code == 422
+    assert client.put(url, json={'step': 'payment', 'status': 'VERIFIED', 'reference': 'session_001'}, headers=tokens['admin']).status_code == 422
     for step in ('payment', 'entitlement'):
         assert client.put(url, json={'step': step, 'status': 'VERIFIED', 'reference': 'receipt_001'}, headers=tokens['admin']).status_code == 200
     result = client.put(url, json={'step': 'payment', 'status': 'FAILED', 'reference': 'receipt_002'}, headers=tokens['admin'])
     assert result.status_code == 200
     assert [check['status'] for check in result.json()['checks']] == ['FAILED', 'PENDING', 'PENDING', 'PENDING']
     assert client.post(f'/api/admin/orders/{order_id}/action', json={'action': 'complete', 'note': '仍不能完成'}, headers=tokens['admin']).status_code == 409
+    assert client.post(f'/api/admin/orders/{order_id}/action', json={'action': 'fail', 'note': '客户 password secret'}, headers=tokens['admin']).status_code == 422

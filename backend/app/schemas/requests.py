@@ -12,6 +12,12 @@ class AlertAcknowledge(Input):
     @classmethod
     def trim_note(cls, value):
         return value.strip() if isinstance(value, str) else value
+
+def reject_credential_text(value):
+    """Keep operator notes/references from becoming a credential dropbox."""
+    if isinstance(value, str) and any(term in value.lower() for term in ('session', 'cookie', 'password', 'passwd', 'cvv', '完整卡号')):
+        raise ValueError('请勿提交登录凭据或银行卡敏感资料')
+    return value.strip() if isinstance(value, str) else value
 class Register(Input):
     email: EmailStr
     password: str = Field(min_length=10, max_length=128)
@@ -80,10 +86,12 @@ class UserUpdate(Input):
 class OrderAction(Input):
     action: Literal['complete','fail','retry','refund','cancel']
     note: str = Field(min_length=3, max_length=200)
+    _safe_note = field_validator('note', mode='before')(reject_credential_text)
 class FulfillmentCheckInput(Input):
     step: Literal['payment','entitlement','renewal_stopped','card_removed']
     status: Literal['VERIFIED','FAILED']
     reference: str = Field(min_length=8, max_length=64, pattern=r'^[A-Za-z][A-Za-z0-9_-]{7,63}$')
+    _safe_reference = field_validator('reference', mode='before')(reject_credential_text)
 class SettingsUpdate(Input):
     sales_enabled: bool
     redemption_enabled: bool
