@@ -359,3 +359,9 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - `backend/app`、`backend/tests`、`scripts` 编译检查及 Git 差异检查通过。
 - `npm audit --omit=dev --audit-level=high` 未能取得结果，原因是当前沙箱无法解析 npm 审计镜像域名；不将网络失败当作依赖安全通过。
 
+## 2026-10-28 配置门禁与测试阻断定位
+
+- `scripts/check_provider_contract.py` 在未配置授权服务商时返回 `mode=manual; no external provider requested`，确认不会发起网络请求。
+- 生产配置试验拒绝 SQLite/演示充值/mock 履约以及不合规授权服务商地址，生产门禁生效。
+- 定向价格测试超时定位在 `TestClient` 启动的 AnyIO blocking portal（fixture `client`），不是业务断言失败；当前沙箱没有活动测试进程或 Docker 服务。待干净容器/CI 环境恢复后重跑。
+
