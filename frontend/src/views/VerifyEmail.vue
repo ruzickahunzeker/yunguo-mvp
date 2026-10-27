@@ -15,6 +15,7 @@ watch(()=>route.hash,hash=>{
  void router.replace({path:route.path,hash:'',query:{}})
 },{immediate:true})
 async function verify(){
+ if(loading.value || !token.value)return
  loading.value=true
  try{const{data}=await api.post('/auth/verify-email',{token:token.value});token.value='';message.value=data.message;if(auth.user)await auth.load()}
  catch(error:any){if(error.response?.status===400 || error.response?.status===422){token.value='';invalid.value=true}}

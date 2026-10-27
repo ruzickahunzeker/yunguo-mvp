@@ -11,7 +11,11 @@ export const useAuth = defineStore('auth', () => {
   async function load() {
     try { features.value = (await api.get('/auth/features')).data } catch { /* Preserve last known feature policy on a transient error. */ }
     if (sessionStorage.getItem('access_token')) {
-      try { user.value = (await api.get('/auth/me')).data } catch { clear() }
+      try { user.value = (await api.get('/auth/me')).data } catch (error: any) {
+        // Keep a session token across a transient network failure; only a server
+        // rejection proves that the session is no longer valid.
+        if (error.response?.status === 401) clear()
+      }
     }
     ready.value = true
   }
