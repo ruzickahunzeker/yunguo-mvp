@@ -17,11 +17,12 @@ async function load(){
  finally{loading.value=false}
 }
 async function search(){
- if(invalid.value)return
+ if(invalid.value || loading.value)return
  applied.value={start:filters.start,end:filters.end,...(filters.source?{source:filters.source}:{}),...(filters.product_id?{product_id:filters.product_id}:{})}
  page.value=1;await load()
 }
 async function exportCSV(){
+ if(exporting.value || !applied.value.start)return
  exporting.value=true
  try{
   const result=await api.get('/admin/reports/sales/export',{params:applied.value,responseType:'blob'})

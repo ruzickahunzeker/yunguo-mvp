@@ -9,13 +9,14 @@ const applied=ref<Record<string,string>>({}),data=ref<any>(),loading=ref(false),
 const invalid=computed(()=>!filters.start||!filters.end||filters.start>filters.end||(Date.parse(filters.end)-Date.parse(filters.start))/86400000>=366)
 const columns=[{key:'batches',label:'采购批次',width:120},{key:'quantity',label:'采购张数',width:120},{key:'amount',label:'扣款金额',type:'money',width:150}]
 async function search(){
- if(invalid.value)return
+ if(invalid.value || loading.value)return
  loading.value=true;error.value='';data.value=undefined
  const params={start:filters.start,end:filters.end,...(filters.agent_id?{agent_id:filters.agent_id}:{}),...(filters.product_id?{product_id:filters.product_id}:{})}
  try{const response=await api.get('/admin/reports/code-purchases',{params});data.value=response.data;applied.value=params}
  catch(e:any){error.value=typeof e.response?.data?.detail==='string'?e.response.data.detail:'采购报表加载失败，请重试。'}finally{loading.value=false}
 }
 async function exportCSV(){
+ if(exporting.value || !applied.value.start)return
  const params={...applied.value}
  exporting.value=true
  try{const result=await api.get('/admin/reports/code-purchases/export',{params,responseType:'blob'});const url=URL.createObjectURL(result.data);const link=document.createElement('a');link.href=url;link.download=`code-purchases-${params.start}-${params.end}.csv`;link.click();URL.revokeObjectURL(url)}finally{exporting.value=false}

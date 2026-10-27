@@ -21,11 +21,12 @@ async function load(){
  finally{if(current===requestId)loading.value=false}
 }
 async function search(){
- if(invalid.value)return
+ if(invalid.value || loading.value)return
  applied.value={start:filters.start,end:filters.end,...(filters.actor_id?{actor_id:filters.actor_id}:{}),...(filters.action?{action:filters.action}:{}),...(filters.target?{target:filters.target}:{})}
  snapshot.value=null;page.value=1;exportError.value='';await load()
 }
 async function exportCSV(){
+ if(exporting.value || !snapshot.value)return
  exporting.value=true;exportError.value=''
  const ceiling=snapshot.value
  try{
