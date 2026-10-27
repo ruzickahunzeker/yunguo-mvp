@@ -284,3 +284,8 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - 本次未取得新的后端完整套件结果：此前启动的测试进程占用临时数据库，清理后未再重复执行，避免把不完整运行误报为通过。既有记录中的退款重复、并发退款、重试上限和已完成订单禁止退款用例继续有效。
 - 当前沙箱 Node 为 `v18.19.1`，项目要求 Node `>=22`；因此本次 `frontend` 构建被环境版本阻断，不能作为代码失败结论。GitHub CI 仍是正式构建依据；本机无法连接 GitHub API/推送网络。
 
+## 2026-10-27 演示数据重置脚本
+
+- 新增 `scripts/reset_demo.py`，仅接受已确认的 SQLite 地址，拒绝生产环境、PostgreSQL 和未带确认参数的删除操作；演示账号密码随机生成且不输出。
+- 使用临时 SQLite 执行重置后，`PYTHONPATH=backend ... python -m app.cli reconcile` 返回 `mismatched_user_ids=[]`；临时数据库已删除。
+
