@@ -289,3 +289,8 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - 新增 `scripts/reset_demo.py`，仅接受已确认的 SQLite 地址，拒绝生产环境、PostgreSQL 和未带确认参数的删除操作；演示账号密码随机生成且不输出。
 - 使用临时 SQLite 执行重置后，`PYTHONPATH=backend ... python -m app.cli reconcile` 返回 `mismatched_user_ids=[]`；临时数据库已删除。
 
+## 2026-10-27 价格回归准备
+
+- 修正动态价格测试缺失的 `User`、`Agent` 导入；测试文件现可正常编译并收集。
+- `test_dynamic_product_prices.py` 收集到 1 项，`test_agent_pricing.py` 与订单异常测试的完整执行在当前沙箱中因临时测试数据库初始化进程无输出并超时，未将其标记为通过；网络恢复或使用干净测试容器后继续执行。
+

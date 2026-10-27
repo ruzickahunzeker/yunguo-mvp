@@ -1,7 +1,7 @@
 from uuid import uuid4
 from sqlalchemy import select
 from app.core.db import SessionLocal
-from app.models import Product, ProductPrice, Order, AuditLog
+from app.models import Product, ProductPrice, Order, AuditLog, User, Agent
 
 
 def h(token):
