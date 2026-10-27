@@ -28,12 +28,17 @@ def main():
         if args.command in ('seed','create-admin'):
             seed_basics(db)
         if args.command == 'seed':
-            for name, description, price, agent in [
-                ('ChatGPT 基础体验 · 演示','体验数字服务的完整购买与交付流程。仅模拟开通，无真实订阅权益。',4900,3900),
-                ('ChatGPT Plus 月度 · 演示','月度订阅服务的演示套餐，用于验证订单、钱包及履约。',14900,12900),
-                ('团队协作服务 · 演示','面向团队场景的数字服务演示。实际授权渠道待正式接入。',29900,25900)]:
-                if not db.scalar(select(Product.id).where(Product.name == name)):
-                    product = Product(name=name,description=description,original_price=price+3000,price=price,stock=1000)
+            for name, description, price, agent, sku, months, verify in [
+                ('ChatGPT 基础体验 · 演示','体验数字服务的完整购买与交付流程。仅模拟开通，无真实订阅权益。',4900,3900,None,None,False),
+                ('ChatGPT Plus 月度 · 演示','月度订阅服务的演示套餐，用于验证订单、钱包及履约。',14900,12900,None,None,False),
+                ('团队协作服务 · 演示','面向团队场景的数字服务演示。实际授权渠道待正式接入。',29900,25900,None,None,False),
+                ('ChatGPT Go 月度 · 待配置','首批真实商品草稿；权益、价格和授权渠道待确认。保持下架。',0,0,'CHATGPT_GO_MONTHLY',1,True),
+                ('ChatGPT Plus 月度 · 待配置','首批真实商品草稿；权益、价格和授权渠道待确认。保持下架。',0,0,'CHATGPT_PLUS_MONTHLY',1,True),
+                ('ChatGPT Pro 月度 · 待配置','首批真实商品草稿；权益、价格和授权渠道待确认。保持下架。',0,0,'CHATGPT_PRO_MONTHLY',1,True)]:
+                if not db.scalar(select(Product.id).where(Product.name == name)) and (not sku or not db.scalar(select(Product.id).where(Product.sku == sku))):
+                    product = Product(name=name,description=description,sku=sku,subscription_months=months,
+                                      original_price=price+3000 if price else 0,price=price,stock=1000,
+                                      active=not bool(sku),verification_required=verify)
                     db.add(product)
                     db.flush()
                     db.add(ProductPrice(product_id=product.id,role='agent',price=agent))

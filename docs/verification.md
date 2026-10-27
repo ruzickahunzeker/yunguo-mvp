@@ -1,5 +1,7 @@
 # 验证记录
 
+2026-10-27：持续执行 P0-01，新增 Go、Plus、Pro 月度商品草稿，SKU 分别为 `CHATGPT_GO_MONTHLY`、`CHATGPT_PLUS_MONTHLY`、`CHATGPT_PRO_MONTHLY`。三款均保持下架、价格为 0、要求逐项履约核验；未改变现有演示商品或历史订单。正式价格、权益和渠道确认后再启用。
+
 2026-10-27：确认并强化可变价格规则。管理员可随时调整商品零售价和默认代理采购价；新报价立即读取新值，历史订单和卡密采购合同保留原金额，审计记录保存变更前后价格。动态价格定向测试通过（1/1）；完整回归沿用本轮前已通过的 171/171 基线，未修改价格计算或扣款事务。
 
 2026-10-26：创建并推送私有 GitHub 仓库 `ruzickahunzeker/yunguo-mvp`。推送前核对 Git 工作区、忽略规则、当前 161 个跟踪文件与历史 blob；未发现数据库、备份、私钥或令牌。远端 `main` 与本地提交 `64f40ab` 一致，首次 GitHub Actions [Checks 运行](https://github.com/ruzickahunzeker/yunguo-mvp/actions/runs/40339779746) 的 backend 和 browser 作业均成功。历史记录中“尚未设置远端”的描述反映当时状态，已由此条更新。
