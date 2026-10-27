@@ -314,3 +314,8 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - Playwright 已配置桌面与 Pixel 7 两个项目，现有平台套件覆盖订单、退款、报表、监控和横向溢出检查。
 - `npm exec -- vue-tsc --noEmit` 通过；本机 Node 为 18，项目要求 Node 22，完整 Vite 构建和浏览器套件等待 Node 22/CI 环境执行。
 
+## 2026-10-27 前端错误提示
+
+- API 客户端现在按网络断开、403、404、409、422、429 和 5xx 提供明确中文提示；服务端返回的业务 `detail` 仍优先展示，登录失效仍会清理会话并广播 `auth-expired`。
+- `npm exec -- vue-tsc --noEmit` 通过；完整浏览器执行仍需 Node 22 和可启动的演示服务。
+
