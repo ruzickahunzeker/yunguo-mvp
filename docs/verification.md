@@ -370,3 +370,9 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - 工作区干净，`git diff --check` 和 Python 编译检查通过；本地 `main` 当前领先 `origin/main` 20 个提交。
 - `git push origin main` 因当前环境无法解析 `github.com` 失败；未改写远端历史，提交保留在本地，网络恢复后按发布清单重试。
 
+## 2026-10-28 GitHub CI 收口
+
+- 已获明确授权并成功推送 `main` 到 `ruzickahunzeker/yunguo-mvp`；远端与本地提交 `0dd9c2f` 一致。
+- GitHub Actions 运行 `40639386266` 通过：backend 和 browser 两个 job 均成功；浏览器构建与桌面/移动隔离套件通过。
+- GitHub runner 提示 actions 使用 Node 20 的弃用告警，但不影响本次 job 结果；后续可升级 actions 主版本消除告警。
+
