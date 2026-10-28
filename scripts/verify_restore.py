@@ -44,6 +44,14 @@ SELECT json_build_object(
 );
 """
 
+SOURCE_SCHEMA_SQL = """
+SELECT json_build_object(
+ 'revision', (SELECT version_num FROM alembic_version),
+ 'business_tables', (SELECT count(*) FROM information_schema.tables
+   WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name<>'alembic_version')
+);
+"""
+
 
 def run(args, **kwargs):
     result = subprocess.run(args, cwd=ROOT, stderr=subprocess.PIPE, timeout=180, **kwargs)
@@ -65,9 +73,10 @@ def main():
     failure = None
     try:
         compose = ['docker', 'compose', '-p', args.project, 'exec', '-T', 'db']
-        revision = run(compose+['psql', '-U', 'yunguo', '-d', 'yunguo', '-Atc',
-                               'select version_num from alembic_version'],
-                       stdout=subprocess.PIPE).stdout.decode().strip()
+        source_schema = json.loads(run(
+            compose+['psql', '-U', 'yunguo', '-d', 'yunguo', '-Atc', SOURCE_SCHEMA_SQL],
+            stdout=subprocess.PIPE).stdout)
+        revision = source_schema['revision']
         with tempfile.TemporaryDirectory(prefix='yunguo-restore-') as directory:
             dump = Path(directory)/'backup.dump'
             with dump.open('xb') as output:
@@ -102,8 +111,10 @@ def main():
                           '-d', 'yunguo_restore', '-Atc', SQL], stdout=subprocess.PIPE)
             checks = json.loads(result.stdout)
             report['checks'] = checks
-            if checks['revision'] != revision or checks['business_tables'] != 24:
-                raise RuntimeError('Restored schema does not match the application revision/table count')
+            report['source_schema'] = source_schema
+            if (checks['revision'] != source_schema['revision'] or
+                    checks['business_tables'] != source_schema['business_tables']):
+                raise RuntimeError('Restored schema does not match the source revision/table count')
             if any(value for key, value in checks.items()
                    if key.endswith('_mismatches') or key in ('missing_jobs', 'unvalidated_constraints')):
                 raise RuntimeError('Restored business consistency checks failed')

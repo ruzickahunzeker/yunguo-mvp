@@ -384,3 +384,10 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - `docker compose exec -T api python -m app.cli reconcile` 返回 `{'mismatched_user_ids': []}`。
 - `docker compose exec -T api alembic check` 返回 `No new upgrade operations detected.`。
 
+## 2026-10-28 隔离备份恢复演练
+
+- `python3 scripts/verify_restore.py` 完成 PostgreSQL 逻辑备份，并在无网络临时容器中恢复；临时容器已清理。
+- 源库与恢复库迁移版本均为 `72c1d41f944e`，业务表数量均为 25；恢复库包含 28 个用户、26 个订单、38 条钱包流水和 14 张卡密记录。
+- 钱包、履约任务、采购、退款、卡密关联和未验证约束检查全部为 0；报告保存在工作区外的 `/root/yunguo-restore-verification.json`。
+- 同时修正恢复脚本，改为比较源库实际表数量，避免新增合法迁移后因旧的硬编码数量误报。
+
