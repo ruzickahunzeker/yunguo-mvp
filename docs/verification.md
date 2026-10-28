@@ -376,3 +376,11 @@ PostgreSQL16最终完整回归141 passed（387.85秒），测试容器已清理�
 - GitHub Actions 运行 `40639386266` 通过：backend 和 browser 两个 job 均成功；浏览器构建与桌面/移动隔离套件通过。
 - GitHub runner 提示 actions 使用 Node 20 的弃用告警，但不影响本次 job 结果；后续可升级 actions 主版本消除告警。
 
+## 2026-10-28 Compose 演示环境验收
+
+- `docker compose up -d --build` 成功完成 Node 22 前端构建，并启动 web、api、worker、mail-worker、monitor、PostgreSQL 和 Redis 服务。
+- `docker compose ps` 显示 API 健康，数据库和 Redis 健康，Web 映射到 `127.0.0.1:8080`。
+- `GET http://127.0.0.1:8080/api/health` 返回 `{"status":"ok","mode":"mock","demo":true}`；确认当前仍是演示/模拟履约模式。
+- `docker compose exec -T api python -m app.cli reconcile` 返回 `{'mismatched_user_ids': []}`。
+- `docker compose exec -T api alembic check` 返回 `No new upgrade operations detected.`。
+
